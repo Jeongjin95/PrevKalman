@@ -768,7 +768,6 @@ ht_prevalence <- function(
     jackknife = jk_out,
     inputs = inputs,
     days = inputs$days,
-    low_test_days = if (!is.null(prepared_data$low_test_days)) unname(prepared_data$low_test_days) else integer(0),
     no_test_days = no_test_days,
     test_counts = test_counts
   )
@@ -1257,7 +1256,6 @@ build_joint_ci6_results <- function(
     ht_se,
     ht_jackknife,
     conf_level,
-    low_test_days = integer(0),
     init_slope = 0,
     q_level_start = 1e-6,
     q_slope_start = 1e-5,
@@ -1279,15 +1277,9 @@ build_joint_ci6_results <- function(
   }
 
   r_t <- ht_se^2
-  if (length(low_test_days) > 0) {
-    r_t[low_test_days] <- NA_real_
-  }
 
   biased_jk <- t(vapply(seq_len(nrow(ht_jackknife)), function(i) {
     y_i <- ht_jackknife[i, ]
-    if (length(low_test_days) > 0) {
-      y_i[low_test_days] <- NA_real_
-    }
 
     valid_obs <- which(is.finite(y_i) & is.finite(r_t) & r_t >= 0)
     if (length(valid_obs) < 2) {
@@ -1369,8 +1361,6 @@ build_joint_ci6_results <- function(
 #' @param ci_method Confidence-interval option. Choose from
 #'   `"model_based"` (default), `"ht_se"`, `"ht_se_adjusted"`, or `"all"`.
 #' @param conf_level Confidence level for the interval.
-#' @param low_test_days Optional integer vector of days to treat as missing
-#'   before fitting the state-space model.
 #' @param init_level Optional initial level. Defaults to the first observed
 #'   estimate after masking missing days.
 #' @param init_slope Optional initial slope.
@@ -1400,7 +1390,6 @@ fit_kalman_model <- function(
     state = c("filter", "smoother", "both"),
     ci_method = c("model_based", "ht_se", "ht_se_adjusted", "all"),
     conf_level = 0.95,
-    low_test_days = NULL,
     init_level = NULL,
     init_slope = 0,
     q_level_start = 1e-6,
@@ -1418,17 +1407,8 @@ fit_kalman_model <- function(
 
   inputs <- extract_kalman_inputs(x = x, y = y, r_t = r_t, days = days)
 
-  if (is.null(low_test_days) && is.list(x) && !is.null(x$low_test_days)) {
-    low_test_days <- x$low_test_days
-  }
-
   y_fit <- inputs$y
   r_t_fit <- inputs$r_t
-
-  if (!is.null(low_test_days) && length(low_test_days) > 0) {
-    y_fit[low_test_days] <- NA_real_
-    r_t_fit[low_test_days] <- NA_real_
-  }
 
   if (is.null(init_level)) {
     init_idx <- which(is.finite(y_fit) & is.finite(r_t_fit) & r_t_fit >= 0)[1]
@@ -1481,8 +1461,7 @@ fit_kalman_model <- function(
     results = results,
     joint_fit = joint_fit,
     state = state,
-    ci_method = ci_methods,
-    low_test_days = if (is.null(low_test_days)) integer(0) else low_test_days
+    ci_method = ci_methods
   )
 }
 
@@ -1495,8 +1474,6 @@ fit_kalman_model <- function(
 #'   leave-one-block-out jackknife estimates stored in `x$jackknife`.
 #' @param state One of `"filter"`, `"smoother"`, or `"both"`.
 #' @param conf_level Confidence level for the interval.
-#' @param low_test_days Optional integer vector of days to treat as missing
-#'   before fitting the state-space model. Defaults to `x$low_test_days`.
 #' @param init_level Optional initial level. Defaults to the first observed
 #'   estimate after masking missing days.
 #' @param init_slope Optional initial slope.
@@ -1544,7 +1521,6 @@ fit_mixture <- function(
     x,
     state = c("filter", "smoother", "both"),
     conf_level = 0.95,
-    low_test_days = NULL,
     init_level = NULL,
     init_slope = 0,
     q_level_start = 1e-6,
@@ -1562,21 +1538,10 @@ fit_mixture <- function(
   state <- match.arg(state)
   inputs <- extract_kalman_inputs(x = x, days = days)
 
-  if (is.null(low_test_days) && !is.null(x$low_test_days)) {
-    low_test_days <- x$low_test_days
-  }
-
   y_fit <- inputs$y
   r_t_fit <- inputs$r_t
   ht_estimate <- inputs$y
   ht_se <- inputs$ht_se
-
-  if (!is.null(low_test_days) && length(low_test_days) > 0) {
-    y_fit[low_test_days] <- NA_real_
-    r_t_fit[low_test_days] <- NA_real_
-    ht_estimate[low_test_days] <- NA_real_
-    ht_se[low_test_days] <- NA_real_
-  }
 
   if (is.null(init_level)) {
     init_idx <- which(is.finite(y_fit) & is.finite(r_t_fit) & r_t_fit >= 0)[1]
@@ -1607,7 +1572,6 @@ fit_mixture <- function(
       ht_se = ht_se,
       ht_jackknife = x$jackknife$theta_leave_block_out,
       conf_level = conf_level,
-      low_test_days = if (is.null(low_test_days)) integer(0) else low_test_days,
       init_slope = init_slope,
       q_level_start = q_level_start,
       q_slope_start = q_slope_start,
@@ -1630,8 +1594,6 @@ fit_mixture <- function(
   list(
     results = results,
     joint_fit = joint_fit,
-    state = state,
-    low_test_days = if (is.null(low_test_days)) integer(0) else low_test_days
+    state = state
   )
 }
-
