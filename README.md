@@ -12,7 +12,6 @@ remotes::install_github("Jeongjin95/PrevKalman")
 
 - `ht_prevalence()` computes the daily Horvitz-Thompson prevalence estimate and the default 20-block jackknife confidence interval.
 - `fit_kalman_model()` fits the joint Kalman model and returns estimates for either the filter or smoother with three CI options: `model_based`, `ht_se`, and `ht_se_adjusted`.
-- `fit_mixture()` fits the CI-6 convex-combination mixture based on the HT estimator and the joint Kalman filter or smoother.
 - `estimate_prevalence_pipeline()` runs the manuscript workflow from a preprocessed data object through HT estimation and Kalman fitting.
 
 ## Example
@@ -49,14 +48,11 @@ kf_fit <- fit_kalman_model(
   ci_method = "all"
 )
 
-mixture_fit <- fit_mixture(
+ks_fit <- fit_kalman_model(
   x = ht_fit,
-  state = "smoother"
+  state = "smoother",
+  ci_method = "all"
 )
-
-head(ht_fit$results)
-head(kf_fit$results)
-head(mixture_fit$results)
 ```
 
 ## GitHub
