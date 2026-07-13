@@ -67,5 +67,3 @@ ks_fit <- fit_kalman_model(
 The package metadata currently assumes the GitHub repository will be:
 
 - `https://github.com/Jeongjin95/PrevKalman`
-
-If you choose a different repository name, update the `URL` and `BugReports` fields in `DESCRIPTION`.
