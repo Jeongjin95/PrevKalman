@@ -18,13 +18,34 @@ remotes::install_github("Jeongjin95/PrevKalman")
 ```r
 library(PrevKalman)
 
-# D: testing indicator matrix
-# Y: test-result matrix
-# R: removed/exempt-state matrix
-# Z.next: next testing-time matrix
-# C.t: most recent clearance-time matrix
-# Sympt.t: most recent symptom/contact-time matrix
-# gamma: support values of C.t
+# D: binary testing-indicator matrix.
+#    D[i, t] = 1 if individual i was tested on day t, and 0 otherwise.
+#
+# Y: binary test-result matrix.
+#    Y[i, t] = 1 if individual i tested positive on day t, 0 if negative,
+#    and NA when no test was administered.
+#
+# R: removed/exempt-state matrix.
+#    R[i, t] = 1 if individual i was no longer in the risk set on day t
+#    because of removal, exemption, or leaving surveillance; 0 otherwise.
+#
+# Z.next: next observed testing-time matrix.
+#    Z.next[i, t] is the next day at or after day t on which individual i
+#    is observed to be tested, computed from D. It is Inf if individual i
+#    has no observed test on or after day t.
+#
+# C.t: most recent clearance-time matrix.
+#    C.t[i, t] records the most recent day up to day t on which individual i
+#    was cleared or became eligible again after a previous positive test,
+#    isolation period, or other temporary ineligibility.
+#
+# Sympt.t: most recent symptom/contact-time matrix.
+#    Sympt.t[i, t] records the most recent day up to day t on which individual i
+#    had a symptom-driven or contact-tracing-driven testing trigger.
+#
+# gamma: support values of C.t.
+#    gamma is usually the sorted unique set of values observed in C.t,
+#    for example gamma = sort(unique(as.vector(C.t))).
 
 ht_fit <- ht_prevalence(
   D = D,
