@@ -2,7 +2,6 @@
 
 export(block_jackknife)
 export(estimate_kalman_q)
-export(estimate_prevalence_pipeline)
 export(expose_fun_hazard_quadratic)
 export(fit_kalman_model)
 export(fit_mixture)
