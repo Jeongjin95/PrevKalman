@@ -13,8 +13,6 @@ remotes::install_github("Jeongjin95/PrevKalman")
 - `ht_prevalence()` computes the daily Horvitz-Thompson prevalence estimate and the default 20-block jackknife confidence interval.
 - `fit_kalman_model()` fits the joint Kalman model and returns estimates for either the filter or smoother with three CI options: `model_based`, `ht_se`, and `ht_se_adjusted`.
 
-The package includes `osu_surveillance_preprocessed`, a ready-to-use preprocessed data object for the manuscript example.
-
 ## Example
 
 ```r
