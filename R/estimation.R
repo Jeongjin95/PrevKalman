@@ -1,3 +1,5 @@
+# Subsets matrix inputs to the selected units while keeping non-matrix entries
+# unchanged.
 subset_data_list_by_keep <- function(data_list, keep) {
   lapply(data_list, function(x) {
     if (is.matrix(x)) {
@@ -8,6 +10,7 @@ subset_data_list_by_keep <- function(data_list, keep) {
   })
 }
 
+# Standardizes legacy input names to the package's current internal names.
 normalize_prepared_data_names <- function(prepared_data) {
   if (is.null(prepared_data)) {
     return(NULL)
@@ -29,6 +32,8 @@ normalize_prepared_data_names <- function(prepared_data) {
   prepared_data
 }
 
+# Resolves Horvitz-Thompson inputs from either a prepared data list or
+# individually supplied matrices, then checks required inputs.
 resolve_ht_inputs <- function(
     prepared_data = NULL,
     D = NULL,
@@ -79,6 +84,8 @@ resolve_ht_inputs <- function(
   c(inputs, list(days = days))
 }
 
+# Extracts prevalence estimates, observation variances, HT standard errors, and
+# day labels for Kalman-model fitting.
 extract_kalman_inputs <- function(x = NULL, y = NULL, r_t = NULL, days = NULL) {
   ht_se <- NULL
   if (!is.null(x)) {
@@ -126,12 +133,18 @@ extract_kalman_inputs <- function(x = NULL, y = NULL, r_t = NULL, days = NULL) {
   list(y = y, r_t = r_t, ht_se = ht_se, days = days)
 }
 
+# Computes the CI-5 coverage probability for a given angle and critical value.
+#
+# Reference: Kaplan, David M. and Liu, Xin (2024). Confidence intervals for
+# intentionally biased estimators. Econometric Reviews, 43(2-4), 197--214.
 ci5_coverage_probability <- function(angle, z_value) {
   left_term <- z_value / cos(angle) - tan(angle)
   right_term <- -z_value / cos(angle) - tan(angle)
   stats::pnorm(left_term) - stats::pnorm(right_term)
 }
 
+# Finds the CI-5 critical value that gives the requested confidence level for a
+# fixed angle.
 ci5_critical_value_from_angle <- function(angle, conf_level = 0.95) {
   alpha <- 1 - conf_level
   z_standard <- stats::qnorm(1 - alpha / 2)
@@ -142,6 +155,8 @@ ci5_critical_value_from_angle <- function(angle, conf_level = 0.95) {
   )$root
 }
 
+# Computes adjusted CI-5 critical values from the ratio of model-based and HT
+# standard errors.
 compute_ci_adjusted_critical <- function(ht_se, model_se, conf_level = 0.95) {
   z_standard <- stats::qnorm(1 - (1 - conf_level) / 2)
 
@@ -157,10 +172,13 @@ compute_ci_adjusted_critical <- function(ht_se, model_se, conf_level = 0.95) {
   }, numeric(1))
 }
 
+# Computes the CI-6 angle from the ratio of biased-estimator SE to HT SE.
 compute_ci6_angle <- function(se_ht, se_biased) {
   acos(pmin(1, pmax(se_biased / se_ht, 0)))
 }
 
+# Computes the CI-6 standard error for a convex combination of HT and biased
+# estimators.
 compute_ci6_se <- function(se_ht, se_biased, weight, rho) {
   sqrt(
     (1 - weight)^2 * se_ht^2 +
@@ -169,6 +187,8 @@ compute_ci6_se <- function(se_ht, se_biased, weight, rho) {
   )
 }
 
+# Computes the CI-6 coverage probability for a fixed angle, weight, and
+# correlation.
 ci6_coverage_probability <- function(angle, z_value, weight, rho) {
   denominator <- sqrt(
     (1 - weight)^2 +
@@ -181,6 +201,7 @@ ci6_coverage_probability <- function(angle, z_value, weight, rho) {
   stats::pnorm(left_term) - stats::pnorm(right_term)
 }
 
+# Finds the CI-6 critical value that gives the requested confidence level.
 ci6_critical_value <- function(angle, weight, rho, conf_level = 0.95) {
   stats::uniroot(
     function(z_value) {
@@ -190,6 +211,7 @@ ci6_critical_value <- function(angle, weight, rho, conf_level = 0.95) {
   )$root
 }
 
+# Chooses the CI-6 convex-combination weight by minimizing the critical value.
 choose_ci6_weight <- function(se_ht, se_biased, rho, conf_level = 0.95) {
   z_standard <- stats::qnorm(1 - (1 - conf_level) / 2)
 
@@ -216,6 +238,7 @@ choose_ci6_weight <- function(se_ht, se_biased, rho, conf_level = 0.95) {
   weight_grid[which.min(z_values)]
 }
 
+# Computes CI-6 point estimates and confidence intervals across study days.
 compute_ci6_weighted_results <- function(
     ht_estimate,
     model_estimate,
@@ -291,6 +314,7 @@ compute_ci6_weighted_results <- function(
   }))
 }
 
+# Builds filter or smoother confidence intervals for the joint Kalman model.
 build_joint_ci_results <- function(fit, state, ci_method, days, ht_se, conf_level) {
   if (state == "filter") {
     estimate <- fit$filtered
@@ -337,10 +361,18 @@ build_joint_ci_results <- function(fit, state, ci_method, days, ht_se, conf_leve
   )
 }
 
+# Computes the core daily HT prevalence estimator used by ht_prevalence().
 #' Horvitz-Thompson Daily Prevalence Estimate
 #'
-#' Computes the daily prevalence estimator under repeated testing using the
-#' manuscript's weighting construction.
+#' Computes the daily Horvitz-Thompson prevalence estimator under repeated
+#' testing using the counterfactual weighting construction of Lee et al. (2026).
+#'
+#' @references
+#' Lee, Jeongjin, Yang, Junke, Rempala, Grzegorz A., and Schnell, Patrick M.
+#' (2026).
+#' A Counterfactual Framework for Estimating Infectious Disease Prevalence
+#' under Repeated Testing with Symptomatic and Contact-Tracing Components.
+#' Annals of Applied Statistics. Accepted for publication.
 #'
 #' @param D Binary testing indicator matrix.
 #' @param Y Binary test-result matrix.
@@ -557,10 +589,19 @@ ht_prevalence_core <- function(
   (nrow(D) - colSums(R) - W_est_unknown) / (nrow(D) - colSums(R))
 }
 
+# Computes HT prevalence estimates with block jackknife standard errors and CIs.
 #' Horvitz-Thompson Prevalence with Block Jackknife Confidence Intervals
 #'
-#' Computes the daily Horvitz-Thompson prevalence estimate and, by default,
-#' 20-block jackknife standard errors and confidence intervals.
+#' Computes daily Horvitz-Thompson prevalence estimates and, by default,
+#' 20-block jackknife standard errors and confidence intervals. The estimator
+#' follows the counterfactual repeated-testing framework of Lee et al. (2026).
+#'
+#' @references
+#' Lee, Jeongjin, Yang, Junke, Rempala, Grzegorz A., and Schnell, Patrick M.
+#' (2026).
+#' A Counterfactual Framework for Estimating Infectious Disease Prevalence
+#' under Repeated Testing with Symptomatic and Contact-Tracing Components.
+#' Annals of Applied Statistics. Accepted for publication.
 #'
 #' @param prepared_data Optional preprocessed data list containing `D`, `Y`,
 #'   `R`, `Z_next`, `C_t`, `Sympt_t`, and `gamma`. Lists using the legacy
@@ -773,10 +814,11 @@ ht_prevalence <- function(
   )
 }
 
+# Computes delete-a-group block jackknife estimates and confidence intervals.
 #' Delete-a-Group Block Jackknife
 #'
-#' Computes block jackknife estimates, standard errors, and confidence
-#' intervals for an arbitrary matrix-based estimator.
+#' Computes block jackknife estimates, standard errors, and confidence intervals
+#' for an arbitrary matrix-based estimator.
 #'
 #' @param estimator_fun Estimator function.
 #' @param data_list Named list of inputs to `estimator_fun`.
@@ -860,6 +902,7 @@ block_jackknife <- function(
   )
 }
 
+# Runs the joint local-linear-trend Kalman filter for prevalence estimates.
 #' Joint Kalman Filter for Daily Prevalence
 #'
 #' Fits the local linear trend state-space model with fixed process variances.
@@ -944,6 +987,7 @@ kalman_filter_joint <- function(
   )
 }
 
+# Runs fixed-interval Kalman smoothing after the joint Kalman filter.
 #' Joint Kalman Smoother for Daily Prevalence
 #'
 #' Applies fixed-interval smoothing to the local linear trend model.
@@ -1002,6 +1046,7 @@ kalman_smoother_joint <- function(
   )
 }
 
+# Maps the selected model type to level and slope process variances.
 get_model_q <- function(model, free_log_q) {
   if (model == "Level-Only") {
     c(Q_level = exp(free_log_q[1]), Q_slope = 0)
@@ -1014,6 +1059,8 @@ get_model_q <- function(model, free_log_q) {
   }
 }
 
+# Computes the Gaussian innovation negative log-likelihood for Kalman Q
+# estimation.
 negloglik_joint_q <- function(
     free_log_q,
     y,
@@ -1060,10 +1107,10 @@ negloglik_joint_q <- function(
   0.5 * sum(log(2 * pi) + log(S_t) + (nu_t^2) / S_t)
 }
 
+# Estimates Kalman process variances by innovation likelihood optimization.
 #' Estimate Kalman Process Variances
 #'
-#' Estimates process variances by maximizing the Gaussian innovation
-#' likelihood.
+#' Estimates process variances by maximizing the Gaussian innovation likelihood.
 #'
 #' @param y Numeric vector of noisy prevalence estimates.
 #' @param r_t Numeric vector of observation variances.
@@ -1149,6 +1196,7 @@ estimate_kalman_q <- function(
   )
 }
 
+# Fits one Kalman model variant and returns filter and smoother summaries.
 #' Fit a Kalman Prevalence Model
 #'
 #' Fits one of the manuscript's Kalman model variants and returns filtered and
@@ -1248,6 +1296,10 @@ fit_kalman_model_single <- function(
   )
 }
 
+# Builds CI-6 convex-combination intervals for either the filter or smoother.
+#
+# Reference: Kaplan, David M. and Liu, Xin (2024). Confidence intervals for
+# intentionally biased estimators. Econometric Reviews, 43(2-4), 197--214.
 build_joint_ci6_results <- function(
     fit,
     state,
@@ -1347,6 +1399,7 @@ build_joint_ci6_results <- function(
   )
 }
 
+# Fits the exported joint Kalman prevalence model and requested CI methods.
 #' Fit the Joint Kalman Prevalence Model
 #'
 #' Fits the joint local linear trend Kalman model and returns daily estimates
@@ -1465,10 +1518,16 @@ fit_kalman_model <- function(
   )
 }
 
+# Fits the CI-6 convex-combination estimator using HT and joint Kalman results.
 #' Fit the CI-6 Convex-Combination Mixture
 #'
 #' Combines the Horvitz-Thompson estimator with the joint Kalman filter or
-#' smoother using the CI-6 convex-combination construction.
+#' smoother using the CI-6 convex-combination construction of Kaplan and Liu
+#' (2024).
+#'
+#' @references
+#' Kaplan, David M. and Liu, Xin (2024). Confidence intervals for intentionally
+#' biased estimators. Econometric Reviews, 43(2-4), 197--214.
 #'
 #' @param x Output from [ht_prevalence()]. This function requires the
 #'   leave-one-block-out jackknife estimates stored in `x$jackknife`.
