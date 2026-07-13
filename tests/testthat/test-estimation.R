@@ -192,8 +192,7 @@ test_that("ht_prevalence returns NA on days with no testing", {
     C_t = matrix(0L, nrow = 2, ncol = 3),
     Sympt_t = matrix(0L, nrow = 2, ncol = 3),
     gamma = 0L,
-    days = 1:3,
-    low_test_days = integer(0)
+    days = 1:3
   )
 
   est <- ht_prevalence(
