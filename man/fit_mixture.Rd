@@ -8,7 +8,6 @@ fit_mixture(
   x,
   state = c("filter", "smoother", "both"),
   conf_level = 0.95,
-  low_test_days = NULL,
   init_level = NULL,
   init_slope = 0,
   q_level_start = 1e-06,
@@ -25,9 +24,6 @@ leave-one-block-out jackknife estimates stored in \code{x$jackknife}.}
 \item{state}{One of \code{"filter"}, \code{"smoother"}, or \code{"both"}.}
 
 \item{conf_level}{Confidence level for the interval.}
-
-\item{low_test_days}{Optional integer vector of days to treat as missing
-before fitting the state-space model. Defaults to \code{x$low_test_days}.}
 
 \item{init_level}{Optional initial level. Defaults to the first observed
 estimate after masking missing days.}
