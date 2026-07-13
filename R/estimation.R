@@ -332,9 +332,6 @@ build_joint_ci_results <- function(fit, state, ci_method, days, ht_se, conf_leve
     estimate = estimate,
     se = se,
     critical_value = critical_value,
-    weight = NA_real_,
-    rho = NA_real_,
-    combo_se = NA_real_,
     lower = lower,
     upper = upper
   )
